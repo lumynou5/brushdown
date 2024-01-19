@@ -1,27 +1,106 @@
-use std::env;
-use std::fs::File;
-use std::io::{BufReader, Read};
+mod config;
+
+use crate::config::Config;
+use clap::{Parser, Subcommand};
+use std::fs::{create_dir_all, remove_dir_all, File, OpenOptions};
+use std::io::{BufReader, BufWriter};
+use std::path::Path;
 use std::process::ExitCode;
 
+#[derive(Parser)]
+struct Cli {
+    #[command(subcommand)]
+    subcommand: Option<Command>,
+}
+
+#[derive(Subcommand)]
+enum Command {
+    New,
+}
+
 fn main() -> ExitCode {
-    let args = env::args().collect::<Vec<String>>();
-    if args.len() != 2 {
-        eprintln!("Bad number of arguments");
-        return ExitCode::FAILURE;
+    let cli = Cli::parse();
+    match cli.subcommand {
+        None => {
+            let config_file =
+                match File::open("brushdown.yaml").or_else(|_| File::open("brushdown.yml")) {
+                    Ok(v) => v,
+                    Err(err) => {
+                        eprintln!("Failed to open the configuration file: {}.", err);
+                        return ExitCode::FAILURE;
+                    }
+                };
+            let config_reader = BufReader::new(config_file);
+            let config = Config::from_raw(match serde_yaml::from_reader(config_reader) {
+                Ok(v) => v,
+                Err(err) => {
+                    eprintln!("Failed to parse the configuration file: {}.", err);
+                    return ExitCode::FAILURE;
+                }
+            });
+            if !config.src.is_dir() || config.src.is_symlink() {
+                eprintln!(
+                    "The source path `{}` is not a directory.",
+                    config.src.display()
+                );
+                return ExitCode::FAILURE;
+            }
+            if config.src == config.dest {
+                eprintln!("The source directory and the destination directory are same.");
+                return ExitCode::FAILURE;
+            }
+            if (config.dest.exists() && !config.dest.is_dir()) || config.dest.is_symlink() {
+                eprintln!(
+                    "The destination path `{}` exists and is not a directory.",
+                    config.dest.display()
+                );
+                return ExitCode::FAILURE;
+            }
+            if config.dest.exists() {
+                if let Err(err) = remove_dir_all(&config.dest) {
+                    eprintln!(
+                        "Failed to clear the destination directory `{}`: {}.",
+                        config.dest.display(),
+                        err
+                    );
+                    return ExitCode::FAILURE;
+                }
+            }
+            if let Err(err) = create_dir_all(&config.dest) {
+                eprintln!(
+                    "Failed to create the destination directory `{}`: {}.",
+                    config.dest.display(),
+                    err
+                );
+                return ExitCode::FAILURE;
+            }
+            ExitCode::SUCCESS
+        }
+        Some(Command::New) => {
+            if Path::new("brushdown.yaml").exists() {
+                eprintln!("A configuration file exists already, please remove it first.");
+                ExitCode::FAILURE
+            } else {
+                match OpenOptions::new()
+                    .write(true)
+                    .create_new(true)
+                    .open("brushdown.yaml")
+                {
+                    Ok(file) => {
+                        match serde_yaml::to_writer(BufWriter::new(file), &Config::default()) {
+                            Ok(_) => ExitCode::SUCCESS,
+                            Err(err) => {
+                                eprintln!("Failed to write to the configuration file: {}.", err);
+                                ExitCode::FAILURE
+                            }
+                        }
+                    }
+                    Err(err) => {
+                        eprintln!("Failed to create a configuration file: {}.", err);
+                        ExitCode::FAILURE
+                    }
+                }
+            }
+        }
     }
-    let file = match File::open(&args[1]) {
-        Ok(file) => file,
-        Err(err) => {
-            eprintln!("{}", err);
-            return ExitCode::FAILURE;
-        },
-    };
-    let mut reader = BufReader::new(file);
-    let mut content = String::new();
-    if let Err(err) = reader.read_to_string(&mut content) {
-        eprintln!("{}", err);
-        return ExitCode::FAILURE;
-    }
-    print!("{}", &content);
-    ExitCode::SUCCESS
 }
