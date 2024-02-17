@@ -83,28 +83,20 @@ fn main() -> ExitCode {
         Some(Command::New) => {
             if Path::new("brushdown.yaml").exists() {
                 eprintln!("A configuration file exists already, please remove it first.");
-                ExitCode::FAILURE
-            } else {
-                match OpenOptions::new()
-                    .write(true)
-                    .create_new(true)
-                    .open("brushdown.yaml")
-                {
-                    Ok(file) => {
-                        match serde_yaml::to_writer(BufWriter::new(file), &Config::default()) {
-                            Ok(_) => ExitCode::SUCCESS,
-                            Err(_) => {
-                                eprintln!("Failed to write to the configuration file");
-                                ExitCode::FAILURE
-                            }
-                        }
-                    }
-                    Err(_) => {
-                        eprintln!("Failed to create a configuration file.");
-                        ExitCode::FAILURE
-                    }
-                }
+                return ExitCode::FAILURE;
             }
+            let Ok(file) = OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open("brushdown.yaml") else {
+                eprintln!("Failed to create a configuration file.");
+                return ExitCode::FAILURE;
+            };
+            let Ok(_) = serde_yaml::to_writer(BufWriter::new(file), &Config::default()) else {
+                eprintln!("Failed to write to the configuration file");
+                return ExitCode::FAILURE;
+            };
+            ExitCode::SUCCESS
         }
     }
 }
