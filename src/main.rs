@@ -8,7 +8,7 @@ use std::path::Path;
 use std::process::ExitCode;
 
 #[derive(Parser)]
-#[command(version, args_conflicts_with_subcommands = true, disable_help_subcommand = true)]
+#[command(version, disable_help_subcommand = true)]
 struct Cli {
     #[command(subcommand)]
     command: Option<Command>,
@@ -16,11 +16,13 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Build the result.
+    Build,
     /// Create an empty BrushDown workspace.
     New,
 }
 
-fn none() -> ExitCode {
+fn build() -> ExitCode {
     let config_file = match File::open("brushdown.yaml").or_else(|_| File::open("brushdown.yml")) {
         Ok(v) => v,
         Err(err) if err.kind() == ErrorKind::NotFound => {
@@ -87,8 +89,8 @@ fn new() -> ExitCode {
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
-    match cli.command {
-        None => none(),
-        Some(Command::New) => new(),
+    match cli.command.unwrap_or(Command::Build) {
+        Command::Build => build(),
+        Command::New => new(),
     }
 }
