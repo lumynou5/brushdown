@@ -8,13 +8,15 @@ use std::path::Path;
 use std::process::ExitCode;
 
 #[derive(Parser)]
+#[command(version, args_conflicts_with_subcommands = true, disable_help_subcommand = true)]
 struct Cli {
     #[command(subcommand)]
-    subcommand: Option<Command>,
+    command: Option<Command>,
 }
 
 #[derive(Subcommand)]
 enum Command {
+    /// Create an empty BrushDown workspace.
     New,
 }
 
@@ -85,7 +87,7 @@ fn new() -> ExitCode {
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
-    match cli.subcommand {
+    match cli.command {
         None => none(),
         Some(Command::New) => new(),
     }
