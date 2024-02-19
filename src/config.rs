@@ -15,7 +15,7 @@ pub struct Config {
 
 impl Config {
     pub fn from_raw(raw: ConfigRaw) -> Self {
-        Config {
+        Self {
             src: PathBuf::from(&raw.src.unwrap_or("src".to_string())),
             dest: PathBuf::from(&raw.dest.unwrap_or("dest".to_string())),
         }
@@ -24,7 +24,7 @@ impl Config {
 
 impl Default for Config {
     fn default() -> Self {
-        Config {
+        Self {
             src: PathBuf::from("src"),
             dest: PathBuf::from("dest"),
         }
