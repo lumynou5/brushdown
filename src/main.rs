@@ -80,10 +80,19 @@ fn new() -> ExitCode {
         eprintln!("Failed to create a configuration file.");
         return ExitCode::FAILURE;
     };
-    if let Err(_) = serde_yaml::to_writer(BufWriter::new(file), &Config::default()) {
+
+    let config = Config::default();
+    if let Err(_) = serde_yaml::to_writer(BufWriter::new(file), &config) {
         eprintln!("Failed to write to the configuration file");
         return ExitCode::FAILURE;
     };
+    if !config.src.exists() {
+        if let Err(_) = create_dir_all(&config.src) {
+            eprintln!("Failed to create the source directory `{}`.", config.src.display());
+            return ExitCode::FAILURE;
+        }
+    }
+
     ExitCode::SUCCESS
 }
 
