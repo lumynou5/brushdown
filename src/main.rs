@@ -35,13 +35,13 @@ fn build() -> ExitCode {
         }
     };
     let config_reader = BufReader::new(config_file);
-    let config = Config::from_raw(match serde_yaml::from_reader(config_reader) {
+    let config: Config = match serde_yaml::from_reader(config_reader) {
         Ok(v) => v,
         Err(_) => {
             eprintln!("Failed to parse the configuration file.");
             return ExitCode::FAILURE;
         }
-    });
+    };
     if !config.src.is_dir() || config.src.is_symlink() {
         eprintln!("The source path `{}` is not a directory.", config.src.display());
         return ExitCode::FAILURE;
