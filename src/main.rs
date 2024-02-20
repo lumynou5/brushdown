@@ -42,6 +42,7 @@ fn build() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
+
     if !config.src.is_dir() || config.src.is_symlink() {
         eprintln!("The source path `{}` is not a directory.", config.src.display());
         return ExitCode::FAILURE;
@@ -54,6 +55,7 @@ fn build() -> ExitCode {
         eprintln!("The destination path `{}` exists and is not a directory.", config.dest.display());
         return ExitCode::FAILURE;
     }
+
     if config.dest.exists() {
         if let Err(_) = remove_dir_all(&config.dest) {
             eprintln!("Failed to clear the destination directory `{}`.", config.dest.display());
@@ -64,6 +66,7 @@ fn build() -> ExitCode {
         eprintln!("Failed to create the destination directory `{}`.", config.dest.display());
         return ExitCode::FAILURE;
     }
+
     ExitCode::SUCCESS
 }
 
